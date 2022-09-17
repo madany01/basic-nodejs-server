@@ -1,44 +1,26 @@
-const fs = require('fs/promises')
 const path = require('path')
-const http = require('http')
+const express = require('express')
 
 const port = process.env.SERVER_PORT || 3000
 
-let cachedFiles = new Map()
+const app = express()
 
-async function getDirFiles(dirPath) {
-  const filesInDir = await fs.readdir(dirPath)
-  const contents = await Promise.all(
-    filesInDir.map(async file => {
-      const fileName = path.basename(file, path.extname(file))
-      return [fileName, await fs.readFile(path.join(dirPath, file), 'utf-8')]
-    })
-  )
-
-  return Object.fromEntries(contents)
-}
-
-const server = http.createServer((req, res) => {
-  const url = new URL(req.url, `https://${req.headers.host}`)
-
-  const pathName = url.pathname.slice(1) || 'index'
-
-  res.setHeader('Content-Type', 'text/html')
-
-  if (!cachedFiles.has(pathName) || pathName === '404') {
-    res.statusCode = 404
-    res.end(cachedFiles.get('404'))
-    return
-  }
-
-  res.end(cachedFiles.get(pathName))
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, './views/index.html'))
 })
 
-async function main() {
-  cachedFiles = new Map(Object.entries(await getDirFiles('./pages')))
+app.get('/contact', (req, res) => {
+  res.sendFile(path.join(__dirname, './views/contact.html'))
+})
 
-  server.listen(port, () => {
-    console.log(`server starts listening on port ${port}`)
-  })
-}
-main()
+app.get('/about', (req, res) => {
+  res.sendFile(path.join(__dirname, './views/about.html'))
+})
+
+app.get('*', (req, res) => {
+  res.status(404).sendFile(path.join(__dirname, './views/404.html'))
+})
+
+app.listen(port, () => {
+  console.log(`server starts listening on port ${port}`)
+})
